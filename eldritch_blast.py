@@ -123,11 +123,11 @@ def main(argv):
         --ODIRA_rev             length of reverse repeat in ODIRA mode
         
     Example cases:
-        `python minion_blast.py -i blast_results.csv -o test_dir -l 1500 -p flanked`
+        `python eldritch_blast.py -i blast_results.csv -o test_dir -l 1500 -p flanked`
         This will give an estimated copy number for a repeat 1500bp long with 1000bp flanking sequence and plot 
         only the reads containing the flanking sequence.
         
-        `python minion_blast.py -i blast_results.csv -o test_dir --ODIRA --ODIRA_fwd 800 --ODIRA_rev 400 --read_names`
+        `python eldritch_blast.py -i blast_results.csv -o test_dir --ODIRA --ODIRA_fwd 800 --ODIRA_rev 400 --read_names`
         This will give an estimated copy number for an ODIRA repeat which has 800bp with 400bp reverse, make no plots,
         and print the reads and their estimated copy number to the terminal.
     """
