@@ -49,12 +49,16 @@ def repeat_check(plots, infile, outfile, fwd_length, rev_length, n, ODIRA=False)
         
         ###Plots all reads, regardless of flanking status
         if plots == "all":
-            repeat_plot(sub_df, x, fwd_length, n, outfile, ODIRA=ODIRA)
+            repeat_plot(sub_df, x, fwd_length, n, outfile, ODIRA=ODIRA, flank=False)
     return reads_copy_number
         
 def repeat_plot(sub_df, x, rep_length, n, outdir, flank=True, ODIRA=False):
     plt.figure(x)
     sign_flip=1
+    if flank==True:
+        color="black"
+    else:
+        color="red"
     if sum(sub_df["difference"]<(-(rep_length+(n/10))))>0: 
         sign_flip = sign_flip*-1
     labelcount=0
@@ -67,7 +71,7 @@ def repeat_plot(sub_df, x, rep_length, n, outdir, flank=True, ODIRA=False):
     ##Plots the blast hits as horizontal lines, with ABC hits on top, B on bottom
     if ODIRA:
         for i,j  in sub_df.iterrows():
-            plt.hlines(len_check(j)*(sign_flip), int(j["sstart"]), int(j["send"]), colors="black")
+            plt.hlines(len_check(j)*(sign_flip), int(j["sstart"]), int(j["send"]), colors=color)
             if len_check(j)*sign_flip==1:
                 labelcount+=1
                 plt.text(y=len_check(j)*1.5*sign_flip, x=np.mean([int(j["sstart"]), int(j["send"])]), s=str(labelcount))
@@ -75,7 +79,7 @@ def repeat_plot(sub_df, x, rep_length, n, outdir, flank=True, ODIRA=False):
     ##Plots tandem repeats alternating top and bottom to prevent overlap
     else:
         for i,j  in sub_df.iterrows():
-            plt.hlines(sign_flip, int(j["sstart"]), int(j["send"]), colors="black")
+            plt.hlines(sign_flip, int(j["sstart"]), int(j["send"]), colors=color)
             labelcount+=1
             plt.text(y=1.5*sign_flip, x=np.mean([int(j["sstart"]), int(j["send"])]), s=str(labelcount))
             sign_flip = sign_flip * -1
@@ -123,11 +127,11 @@ def main(argv):
         --ODIRA_rev             length of reverse repeat in ODIRA mode
         
     Example cases:
-        `python eldritch_blast.py -i blast_results.csv -o test_dir -l 1500 -p flanked`
+        `python recon_ebb.py -i blast_results.csv -o test_dir -l 1500 -p flanked`
         This will give an estimated copy number for a repeat 1500bp long with 1000bp flanking sequence and plot 
         only the reads containing the flanking sequence.
         
-        `python eldritch_blast.py -i blast_results.csv -o test_dir --ODIRA --ODIRA_fwd 800 --ODIRA_rev 400 --read_names`
+        `python recon_ebb.py -i blast_results.csv -o test_dir --ODIRA --ODIRA_fwd 800 --ODIRA_rev 400 --read_names`
         This will give an estimated copy number for an ODIRA repeat which has 800bp with 400bp reverse, make no plots,
         and print the reads and their estimated copy number to the terminal.
     """
@@ -170,6 +174,7 @@ def main(argv):
         assert ODIRA_fwd > 0, "--ODIRA_fwd required when ODIRA specified"
         assert ODIRA_rev > 0, "--ODIRA_fwd required when ODIRA specified"
         fwd_length = ODIRA_fwd
+        print("REMINDER: This script only counts the forward repeat units in ODIRA cases. To get the total number of the amplified section, multiply by 2 and subtract 1, i.e. 2n-1")
     else:
         assert tandem_length > 0, "-l or --repeat_length required when ODIRA not specified"
         fwd_length = tandem_length
@@ -185,11 +190,22 @@ def main(argv):
                            fwd_length=fwd_length, 
                            rev_length=ODIRA_rev, 
                            n=n)
+    
+    ###edit this part 
+    with open(outdir+"/recon_ebb_results.txt", "w") as fout:
+        counter_dict = Counter(results.values())
+        fout.write("Copy Number \t No. Reads")
+        for i in range(0, int(max(counter_dict.keys()))+1):
+            fout.write(str(i)+" \t\t "+str(counter_dict[float(i)])+"\n")
+    
     if read_names == True:
-        for i in results:
-            print(i, results[i])
-    print(Counter(results.values()))
+        with open(outdir+"/recon_ebb_readnames.txt", "w") as readout:
+            readout.write("Read Name \t\t\t\t\t Copy number \n")
+            for i in results:
+                readout.write(str(i)+" \t\t "+str(results[i])+"\n")
 
+    
+    print("Done!\nCheck your results in "+outdir)
                   
 if __name__ == "__main__":
     main(sys.argv[1:])
