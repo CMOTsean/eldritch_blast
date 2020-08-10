@@ -42,14 +42,14 @@ def repeat_check(plots, infile, outfile, fwd_length, rev_length, n, ODIRA=False)
                 copyNumb = (min(abs(flank_hits_df.iloc[0,9]-flank_hits_df.iloc[1,8]), abs(flank_hits_df.iloc[1,9]-flank_hits_df.iloc[0,8])))/(fwd_length)
             read_name = flank_hits_df.iloc[0,1]
             reads_copy_number[read_name] = round(copyNumb)+2
-            if plots == "flanked":
+            if plots == "flanked" or plots == "all":
                 repeat_plot(sub_df, x, fwd_length, n, outfile, ODIRA=ODIRA)
         else:
+            if plots == "all":
+                repeat_plot(sub_df, x, fwd_length, n, outfile, ODIRA=ODIRA, flank=False)
             no_flank_count += 1
         
         ###Plots all reads, regardless of flanking status
-        if plots == "all":
-            repeat_plot(sub_df, x, fwd_length, n, outfile, ODIRA=ODIRA, flank=False)
     return reads_copy_number
         
 def repeat_plot(sub_df, x, rep_length, n, outdir, flank=True, ODIRA=False):
