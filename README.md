@@ -4,18 +4,18 @@ This is a script I created to visualise and summarise the number of copies of a 
 
 The utility of this script is to count the number of repeat copies in each read from a table of BLASTN results (using `-outfmt 6`), to identify exact number of copies and differences in copy number between alleles in cases of heterozygosity. However since long-reads are prone to error, some copies may have incorrect lengths in the BLAST output, or be missing altogether. A visualisation tool is included in the script to manually check the reads which are outliers in copy number.
 
-### Requirements
+## Requirements
 Python 3
 
-### Input
+## Input
 A tab separated file containing the results of a BLASTN search with:
  -  `query`:	the full sequence of the repeat +/- flanking DNA (recommended 1000bp either side). The flanking DNA is required for the script to identify reads containing a full, intact repeat region.
  -  `database`:	the long reads you are looking for the repeat in, converted from FASTQ to FASTA using `seqtk` or similar
  -  `outfmt`:	6  To make a tab separated output without headers.
 
-### Output
+## Output
 
-####Summary
+### Summary
 
 A tab separated file with 2 columns:
 1. Column containing copy numbers up to the max number observed
@@ -31,7 +31,7 @@ A file containing a list of each read with an intact repeat region and the corre
 
 This script will only count the forward repeats in ODIRA cases. The total copy number of the amplified region, i.e Forward+Reverse, can be obtained by multiplying by 2 and subtracting 1 (2n-1).
 
-####Plots
+### Plots
 
 *Options*
 `-p all` or `--plots all`
@@ -46,7 +46,7 @@ Same as above but only the reads which have an intact, complete repeat region ar
 No plots are generated.
 
 
-###Usage tips
+## Usage tips
 
 - This script is intended to estimate the copy number of tandem repeats; either simple tandem amplification or an ODIRA-like amplification.
 - You must know the length of the repeat. For ODIRA cases, the forward length goes from leftmost inverted repeat to rightmost, inclusive. The reverse length is the part which is amplified in reverse, i.e. the sequence immediately flanked by the inner inverted repeats.
