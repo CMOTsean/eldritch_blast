@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
 import os
-
+import argparse
 pd.options.mode.chained_assignment = None
 
 
@@ -95,117 +95,97 @@ def repeat_plot(sub_df, x, rep_length, n, outdir, flank=True, ODIRA=False):
 
 
 def main(argv):
+    ###Parsing arguments
+    parser = argparse.ArgumentParser()
+    mode = parser.add_mutually_exclusive_group()
+    parser.add_argument("-i", "--input", help="A .csv containing output of blast search against reads using -outfmt 6")
+    parser.add_argument("-o", "--out_dir", help="Destination directory for plots")
+    parser.add_argument("-p", "--plots", choices=["none", "all", "flanked"] ,default="none", help=""""None" = no plotting.
+                                "flanked" = only plot reads containing the flanking DNA.
+                                "all" = plot all reads""")
+    parser.add_argument("-n", "--flank_length", default=1000, type=int, help="length of flanking DNA on either side")
+    parser.add_argument("--read_names", action="store_true", help="prints list of reads with respective copy number to terminal")
+    mode.add_argument("-l", "--repeat_length", default=0, type=int, help="Length of tandem repeat of interest")
+    mode.add_argument("--ODIRA", action="store_true", help="Switch script to ODIRA mode")
+    parser.add_argument("--ODIRA_fwd", type=int, default=0, help="length of forward repeat in ODIRA mode")
+    parser.add_argument("--ODIRA_rev", type=int, default=0,  help="length of reverse repeat in ODIRA mode")
+    args=parser.parse_args()
     
-    ###Default options
-    ODIRA=False
-    n=1000
-    ODIRA_fwd=0
-    ODIRA_rev=0
-    tandem_length=0
-    read_names=False
-    plots = "None"
-    Help_text = """
-    This script estimates the copy number of tandem/ODIRA repeats from blast results
-    of the repeat + flanking regions against long reads such as minION.
-    
-    Arguments
-    ~~~~~~~~~
-    Required:
-        -i or --input:          csv containing output of blast search against the reads
-                                using -outfmt 6
-        -o or --out_dir:        directory destination for plots
-        -l or --repeat_length:  the length of repeat (bp) for tandem repeats (not required when using ODIRA option)
-    Options:
-        -h or --help            displays help message
-        -p or --plots           "None", no plotting -Default-
-                                "flanked", only plot reads containing the flanking DNA
-                                "all", plot all reads
-        -n or --flank_length    length of flanking DNA on either side. Default: 1000
-        --read_names            prints list of reads with respective copy number to terminal
-        --ODIRA                 no argument needed. Specifies ODIRA mode
-        --ODIRA_fwd             length of forward repeat in ODIRA mode
-        --ODIRA_rev             length of reverse repeat in ODIRA mode
-        
-    Example cases:
-        `python recon_ebb.py -i blast_results.csv -o test_dir -l 1500 -p flanked`
-        This will give an estimated copy number for a repeat 1500bp long with 1000bp flanking sequence and plot 
-        only the reads containing the flanking sequence.
-        
-        `python recon_ebb.py -i blast_results.csv -o test_dir --ODIRA --ODIRA_fwd 800 --ODIRA_rev 400 --read_names`
-        This will give an estimated copy number for an ODIRA repeat which has 800bp with 400bp reverse, make no plots,
-        and print the reads and their estimated copy number to the terminal.
-    """
-    ###Get argument options
-    try:
-        opts, args = getopt.getopt(argv, "hn:l:i:o:p:",["plots=", "help", "input=", "out_dir=", "out_prefix=", "ODIRA_fwd=", "ODIRA_rev=", "ODIRA", "flank_length=", "repeat_length=", "read_names"])
-    except getopt.GetoptError:
-        print(Help_text)
-        sys.exit(2)
-        
-    ###Assign to variables    
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            print(Help_text)
-            sys.exit()
-        elif opt in ("-i", "--input"):
-            fin = arg
-        elif opt in ("-o", "--out_dir"):
-            outdir = arg
-        elif opt in ("-p", "--plots"):
-            if arg == "flanked" or arg == "all":
-                plots = arg
-            else:
-                print(Help_text)
-        elif opt in ("-n", "--flank_length"):
-            n = int(arg)
-        elif opt in ("-l", "--repeat_length"):
-            tandem_length = int(arg)
-        elif opt in ("--ODIRA"):
-            ODIRA = True
-        elif opt in ("--ODIRA_fwd"):
-            ODIRA_fwd = int(arg)
-        elif opt in ("--ODIRA_rev"):
-            ODIRA_rev = int(arg)
-        elif opt in ("--read_names"):
-            read_names = True
     ###Asserts proper repeat lengths are given
-    assert fin and outdir, "input file and output directory are required"
-    if ODIRA:
-        assert ODIRA_fwd > 0, "--ODIRA_fwd required when ODIRA specified"
-        assert ODIRA_rev > 0, "--ODIRA_fwd required when ODIRA specified"
-        fwd_length = ODIRA_fwd
+    assert args.input and args.out_dir, "input file and output directory are required"
+    if args.ODIRA:
+        assert args.ODIRA_fwd > 0, "--ODIRA_fwd required when ODIRA specified"
+        assert args.ODIRA_rev > 0, "--ODIRA_fwd required when ODIRA specified"
+        fwd_length = args.ODIRA_fwd
         print("REMINDER: This script only counts the forward repeat units in ODIRA cases. To get the total number of the amplified section, multiply by 2 and subtract 1, i.e. 2n-1")
     else:
-        assert tandem_length > 0, "-l or --repeat_length required when ODIRA not specified"
-        fwd_length = tandem_length
+        assert args.repeat_length > 0, "-l or --repeat_length required when ODIRA not specified"
+        fwd_length = args.repeat_length
     ###Makes out directory if it doesn't exist
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
+    if not os.path.exists(args.out_dir):
+        os.makedirs(args.out_dir)
     
     ###Call main function
-    results = repeat_check(plots=plots, 
-                           ODIRA=ODIRA, 
-                           infile=fin, 
-                           outfile=outdir, 
+    results = repeat_check(plots=args.plots, 
+                           ODIRA=args.ODIRA, 
+                           infile=args.input, 
+                           outfile=args.out_dir, 
                            fwd_length=fwd_length, 
-                           rev_length=ODIRA_rev, 
-                           n=n)
-    
-    ###edit this part 
-    with open(outdir+"/recon_ebb_results.txt", "w") as fout:
-        counter_dict = Counter(results.values())
-        fout.write("Copy Number \t No. Reads")
-        for i in range(0, int(max(counter_dict.keys()))+1):
-            fout.write(str(i)+" \t\t "+str(counter_dict[float(i)])+"\n")
-    
-    if read_names == True:
-        with open(outdir+"/recon_ebb_readnames.txt", "w") as readout:
-            readout.write("Read Name \t\t\t\t\t Copy number \n")
-            for i in results:
-                readout.write(str(i)+" \t\t "+str(results[i])+"\n")
-
-    
-    print("Done!\nCheck your results in "+outdir)
+                           rev_length=args.ODIRA_rev, 
+                           n=args.flank_length)
+    if results:
+        ###Write to files
+        outdir = args.out_dir
+        with open(outdir+"/recon_ebb_results.txt", "w") as fout:
+            counter_dict = Counter(results.values())
+            fout.write("Copy Number \t No. Reads \n")
+            for i in range(0, int(max(counter_dict.keys()))+1):
+                fout.write(str(i)+" \t\t "+str(counter_dict[float(i)])+"\n")
+        
+        if args.read_names:
+            with open(outdir+"/recon_ebb_readnames.txt", "w") as readout:
+                readout.write("Read Name \t\t\t\t\t Copy number \n")
+                for i in results:
+                    readout.write(str(i)+" \t\t "+str(results[i])+"\n")
+        
+        print("Done!\nCheck your results in "+outdir)
+    else:
+        print("There were no reads found containing the entire repeat")
                   
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+
+
+
+#Help_text = """
+#    This script estimates the copy number of tandem/ODIRA repeats from blast results
+#    of the repeat + flanking regions against long reads such as minION.
+#    
+#    Arguments
+#    ~~~~~~~~~
+#    Required:
+#        -i or --input:          csv containing output of blast search against the reads
+#                                using -outfmt 6
+#        -o or --out_dir:        directory destination for plots
+#        -l or --repeat_length:  the length of repeat (bp) for tandem repeats (not required when using ODIRA option)
+#    Options:
+#        -h or --help            displays help message
+#        -p or --plots           "None", no plotting -Default-
+#                                "flanked", only plot reads containing the flanking DNA
+#                                "all", plot all reads
+#        -n or --flank_length    length of flanking DNA on either side. Default: 1000
+#        --read_names            prints list of reads with respective copy number to terminal
+#        --ODIRA                 no argument needed. Specifies ODIRA mode
+#        --ODIRA_fwd             length of forward repeat in ODIRA mode
+#        --ODIRA_rev             length of reverse repeat in ODIRA mode
+#        
+#    Example cases:
+#        `python recon_ebb.py -i blast_results.csv -o test_dir -l 1500 -p flanked`
+#        This will give an estimated copy number for a repeat 1500bp long with 1000bp flanking sequence and plot 
+#        only the reads containing the flanking sequence.
+#        
+#        `python recon_ebb.py -i blast_results.csv -o test_dir --ODIRA --ODIRA_fwd 800 --ODIRA_rev 400 --read_names`
+#        This will give an estimated copy number for an ODIRA repeat which has 800bp with 400bp reverse, make no plots,
+#        and print the reads and their estimated copy number to the terminal.
+#    """
